@@ -1,0 +1,30 @@
+name: Tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [20, 22]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+  look:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No fonts from outside sites (DESIGN.md §3)
+        run: |
+          if grep -rInE "fonts\.(googleapis|gstatic)\.com|use\.typekit|fonts\.bunny|@import url\(['\"]?https?:" lib public; then
+            echo "::error::Fonts must come from /shared/fonts/, never from an outside site."
+            exit 1
+          fi
+          echo "No outside font links."
