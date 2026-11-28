@@ -44,4 +44,4 @@ Before Open Dental is switched to the real database, the Daysheet moves **off Ho
 
 ## Settings that differ between offices
 
-Add these to the app's environment variables if the defaults don't fit: `CLINIC_DAYS` (Toledo Dental Care: `1,2,3,4`), `XRAY_FMX_MONTHS`, `XRAY_BWX_MONTHS`, `INSURANCE_LOW`. See the README's Settings table.
+Clinic days, closed dates and the time zone are set in **Dashboard → Settings → Office**, not here. Add these only if the defaults don't fit: `XRAY_FMX_MONTHS`, `XRAY_BWX_MONTHS`, `INSURANCE_LOW`. See the README's Settings table.
