@@ -1,6 +1,6 @@
 {
   "name": "tdc-dental-daysheet",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "TDC Office module: today's patients with unscheduled treatment, x-ray status and lab cases (read only).",
   "private": true,
   "main": "server.js",
@@ -8,7 +8,8 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test",
-    "sync-core": "node scripts/sync-core.js"
+    "sync-core": "node scripts/sync-core.js",
+    "fake-gateway": "node scripts/fake-gateway.js"
   },
   "license": "UNLICENSED"
 }

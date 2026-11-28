@@ -17,10 +17,10 @@ function fakeRows(name, params) {
   switch (name) {
     case 'daysheet':
       return [
-        { AptNum: 501, AptDateTime: `${d} 08:00:00`, Time: '08:00', Minutes: 60, Status: 'Complete', PatNum: 9001, LName: 'Testerson', FName: 'Alex', Preferred: '', Provider: 'DOC1', Hygienist: 'HYG1', OpName: 'Hyg 1', IsHygiene: true, IsNewPatient: false, Confirmed: 'Confirmed', Procedures: 'D1110, D0120' },
-        { AptNum: 502, AptDateTime: `${d} 09:30:00`, Time: '09:30', Minutes: 90, Status: 'Scheduled', PatNum: 9002, LName: 'Sampleton', FName: 'Bea', Preferred: 'B', Provider: 'DOC1', Hygienist: null, OpName: 'Op 1', IsHygiene: false, IsNewPatient: false, Confirmed: 'Texted', Procedures: 'D2740 #30' },
-        { AptNum: 503, AptDateTime: `${d} 13:00:00`, Time: '13:00', Minutes: 60, Status: 'Scheduled', PatNum: 9003, LName: 'Mockford', FName: 'Cy', Preferred: '', Provider: 'DOC2', Hygienist: null, OpName: 'Op 2', IsHygiene: false, IsNewPatient: true, Confirmed: 'Unconfirmed', Procedures: 'D0150, D0210' },
-        ...(params.include_broken === 'true' ? [{ AptNum: 504, AptDateTime: `${d} 15:00:00`, Time: '15:00', Minutes: 30, Status: 'Broken', PatNum: 9004, LName: 'Fakely', FName: 'Dee', Preferred: '', Provider: 'DOC1', Hygienist: null, OpName: 'Op 1', IsHygiene: false, IsNewPatient: false, Confirmed: '', Procedures: 'D2391' }] : []),
+        { AptNum: 501, AptDateTime: `${d} 08:00:00`, Time: '08:00', Minutes: 60, Status: 'Complete', PatNum: 9001, LName: 'Testerson', FName: 'Alex', Preferred: '', Provider: 'DOC1', Hygienist: 'HYG1', OpName: 'Hyg 1', IsHygiene: true, IsNewPatient: false, Confirmed: 'Confirmed', Procedures: 'D1110, D0120', ScheduledFee: 180, Age: 41, ProcDescript: 'PerEx, Pro' },
+        { AptNum: 502, AptDateTime: `${d} 09:30:00`, Time: '09:30', Minutes: 90, Status: 'Scheduled', PatNum: 9002, LName: 'Sampleton', FName: 'Bea', Preferred: 'B', Provider: 'DOC1', Hygienist: null, OpName: 'Op 1', IsHygiene: false, IsNewPatient: false, Confirmed: 'Texted', Procedures: 'D2740 #30', ScheduledFee: 1350, Age: 58, ProcDescript: 'Seat crown #30' },
+        { AptNum: 503, AptDateTime: `${d} 13:00:00`, Time: '13:00', Minutes: 60, Status: 'Scheduled', PatNum: 9003, LName: 'Mockford', FName: 'Cy', Preferred: '', Provider: 'DOC2', Hygienist: null, OpName: 'Op 2', IsHygiene: false, IsNewPatient: true, Confirmed: 'Unconfirmed', Procedures: 'D0150, D0210', ScheduledFee: 290, Age: null },
+        ...(params.include_broken === 'true' ? [{ AptNum: 504, AptDateTime: `${d} 15:00:00`, Time: '15:00', Minutes: 30, Status: 'Broken', PatNum: 9004, LName: 'Fakely', FName: 'Dee', Preferred: '', Provider: 'DOC1', Hygienist: null, OpName: 'Op 1', IsHygiene: false, IsNewPatient: false, Confirmed: '', Procedures: 'D2391', ScheduledFee: 210, Age: 33 }] : []),
       ];
     case 'xray_history':
       return [
@@ -32,11 +32,32 @@ function fakeRows(name, params) {
     case 'unscheduled_treatment': {
       const all = [
         { PatNum: 9002, LName: 'Sampleton', FName: 'Bea', ProcNum: 7001, ProcCode: 'D2950', Descript: 'core buildup', ToothNum: '30', Surf: '', Fee: 320, DateTP: '2025-09-01', Priority: 'Urgent', PatientTotal: 1520, PatientOldestDateTP: '2025-09-01', AsOf: TODAY },
+        { PatNum: 9002, LName: 'Sampleton', FName: 'Bea', ProcNum: 7004, ProcCode: 'D2950', Descript: 'core buildup', ToothNum: '19', Surf: '', Fee: 300, DateTP: '2026-10-01', Priority: '2', PatientTotal: 1820, PatientOldestDateTP: '2025-09-01', AsOf: TODAY },
         { PatNum: 9002, LName: 'Sampleton', FName: 'Bea', ProcNum: 7002, ProcCode: 'D2740', Descript: 'crown - porcelain/ceramic', ToothNum: '19', Surf: '', Fee: 1200, DateTP: '2026-10-01', Priority: '', PatientTotal: 1520, PatientOldestDateTP: '2025-09-01', AsOf: TODAY },
         { PatNum: 9005, LName: 'Exampleby', FName: 'Eli', ProcNum: 7003, ProcCode: 'D2392', Descript: 'resin - two surfaces', ToothNum: '3', Surf: 'MO', Fee: 240, DateTP: '2026-06-01', Priority: '', PatientTotal: 240, PatientOldestDateTP: '2026-06-01', AsOf: TODAY },
       ];
       return all.filter((r) => !params.patients || params.patients.map(Number).includes(r.PatNum));
     }
+    case 'insurance_remaining': {
+      const all = [
+        { PatNum: 9001, LName: 'Testerson', FName: 'Alex', Carrier: 'Pretend Mutual', AnnualMax: 1500, Used: 300, Remaining: 1200, BenefitYearStart: '2026-01-01', IsEstimate: true, AsOf: TODAY },
+        { PatNum: 9002, LName: 'Sampleton', FName: 'Bea', Carrier: 'Imaginary Dental', AnnualMax: 2000, Used: 1068, Remaining: 932, BenefitYearStart: '2026-01-01', IsEstimate: true, AsOf: TODAY },
+        { PatNum: 9003, LName: 'Mockford', FName: 'Cy', Carrier: 'Nowhere Benefits', AnnualMax: null, Used: 0, Remaining: null, BenefitYearStart: '2026-01-01', IsEstimate: true, AsOf: TODAY },
+      ];
+      return all.filter((r) => !params.patients || params.patients.map(Number).includes(r.PatNum));
+    }
+    case 'daysheet_goals':
+      return [
+        { ProvNum: 1, Provider: 'DOC1', IsHygienist: false, HourlyGoal: 600, Hours: 6, Goal: 3600, ScheduledProduction: 1350 },
+        { ProvNum: 3, Provider: 'HYG1', IsHygienist: true, HourlyGoal: 150, Hours: 8, Goal: 1200, ScheduledProduction: 180 },
+        { ProvNum: 2, Provider: 'DOC2', IsHygienist: false, HourlyGoal: 0, Hours: 0, Goal: 0, ScheduledProduction: 290 },
+      ];
+    case 'operatories':
+      return [
+        { OperatoryNum: 1, OpName: 'Op 1', Abbrev: 'O1', ProvDentist: 1, ProvHygienist: 0, IsHygiene: 0, ClinicNum: 0, IsHidden: 0 },
+        { OperatoryNum: 2, OpName: 'Op 2', Abbrev: 'O2', ProvDentist: 2, ProvHygienist: 0, IsHygiene: 0, ClinicNum: 0, IsHidden: 0 },
+        { OperatoryNum: 3, OpName: 'Hyg 1', Abbrev: 'H1', ProvDentist: 0, ProvHygienist: 3, IsHygiene: 1, ClinicNum: 0, IsHidden: 0 },
+      ];
     case 'lab_cases_open':
       return [
         { LabCaseNum: 801, PatNum: 9002, LName: 'Sampleton', FName: 'Bea', Lab: 'Pretend Lab', ProvNum: 1, DateTimeCreated: '2026-11-01 10:00:00', DateTimeSent: '2026-11-02 10:00:00', DateTimeDue: '2026-11-15 12:00:00', DateTimeRecd: '0001-01-01 00:00:00', AptNum: 502, SeatAppt: `${TODAY} 09:30:00`, AptStatus: 1, Status: 'at_lab', Overdue: 1, SeatRisk: 1, Instructions: 'Shade A2 (fake)' },
