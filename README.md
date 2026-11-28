@@ -97,11 +97,13 @@ The same code runs on the office server. Set `TDC_STAGE=live`, `PORT=3101` and `
 | `MODULE_SECRET` | From Dashboard → Settings → Modules. 64 characters. |
 | `GATEWAY_URL` | The gateway's address. |
 | `GATEWAY_KEY` | This module's own gateway key (`node gateway/cli.js new-key daysheet` in opendental-claude). |
-| `OFFICE_TZ` | Time zone for "today". Default `America/Los_Angeles`. |
-| `CLINIC_DAYS` | Days the office sees patients, 0 = Sunday … 6 = Saturday. Default `1,2,3,4,5`. Toledo Dental Care: `1,2,3,4`. On other days Today shows the next clinic day. |
+| `OFFICE_TZ` | Time zone for "today" **if the Dashboard doesn't send one**. Default `America/Los_Angeles`. |
+| `CLINIC_DAYS` | Days the office sees patients (0 = Sunday … 6 = Saturday), **only if the Dashboard doesn't send them**. Default `1,2,3,4,5`. |
 | `XRAY_FMX_MONTHS` | FMX is due this many months after the last one. Default `60` (5 years). |
 | `XRAY_BWX_MONTHS` | Bitewings are due this many months after the last bitewings or FMX. Default `12`. |
 | `INSURANCE_LOW` | Insurance left below this shows amber. Default `500`. |
+
+**Clinic days, closed dates and the time zone are set once for every app in Dashboard → Settings → Office** (CONTRACT §3, `X-TDC-Office`). The Daysheet uses those; the two settings above are only a fallback for an older Dashboard. On a day the office is closed, Today shows the next clinic day, and opening a closed date shows *Office closed*.
 
 `.env` is never committed to GitHub. Never paste the secret or keys into GitHub, email or chat.
 

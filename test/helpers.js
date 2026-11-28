@@ -102,8 +102,8 @@ async function startModule({ gateway, gatewayUrl, stage = 'design', today = TODA
   return { app, data, logs, port: app.address().port };
 }
 
-function call(port, method, pathAndQuery, { user = 'jtester', name = 'Jo Tester', roles = 'front', base = '/m/daysheet', sign = true, time = Date.now() } = {}) {
-  const headers = {};
+function call(port, method, pathAndQuery, { user = 'jtester', name = 'Jo Tester', roles = 'front', base = '/m/daysheet', sign = true, time = Date.now(), headers: extra = {} } = {}) {
+  const headers = { ...extra };
   if (sign) {
     headers['x-tdc-user'] = user; headers['x-tdc-name'] = name; headers['x-tdc-roles'] = roles; headers['x-tdc-base'] = base;
     headers['x-tdc-time'] = String(time);
