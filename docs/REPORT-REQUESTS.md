@@ -1,6 +1,6 @@
 # Report requests for the Connector agent
 
-The Daysheet needs a little more from the gateway. These are written as issues for **MULLET156/opendental-claude** (title first). Until they're released, the Daysheet uses fake data shaped like this and simply hides what it doesn't get yet.
+The Daysheet needs a little more from the gateway. Filed in **MULLET156/opendental-claude** on 2026-11-27: [#19 daysheet_goals](https://github.com/MULLET156/opendental-claude/issues/19) and [#20 more columns](https://github.com/MULLET156/opendental-claude/issues/20). Until they're released, the Daysheet uses fake data shaped like this and simply hides what it doesn't get yet.
 
 ---
 
