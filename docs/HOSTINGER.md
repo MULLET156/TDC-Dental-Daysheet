@@ -29,7 +29,7 @@ In the design stage the Daysheet is its **own Hostinger Node.js app** on its own
    | `OFFICE_TZ` | `America/Los_Angeles` |
 
    Don't set `PORT`; Hostinger sets it. No `DATA_DIR` is needed: the Daysheet stores nothing.
-6. Click **Deploy**. When it's running, open `https://<its address>/health`. You should see `{"ok":true,"version":"0.1.0","contract":1}`. Any other page says **Unauthorized**: that's correct, only the Dashboard may open it.
+6. Click **Deploy**. When it's running, open `https://<its address>/health`. You should see `{"ok":true,"version":"0.2.0","contract":1}`. Any other page says **Unauthorized**: that's correct, only the Dashboard may open it.
 7. Open the Dashboard: the two Daysheet tiles appear on the home page, and **Apps** lists **Dental Daysheet**.
 
 ## If something's wrong
@@ -41,3 +41,7 @@ In the design stage the Daysheet is its **own Hostinger Node.js app** on its own
 ## Moving to the live stage
 
 Before Open Dental is switched to the real database, the Daysheet moves **off Hostinger** to the office server (PLAN.md, "Two stages"). When the gateway is set to `live`, this Hostinger copy stops showing patient pages by itself. Then delete the Hostinger app.
+
+## Settings that differ between offices
+
+Add these to the app's environment variables if the defaults don't fit: `CLINIC_DAYS` (Toledo Dental Care: `1,2,3,4`), `XRAY_FMX_MONTHS`, `XRAY_BWX_MONTHS`, `INSURANCE_LOW`. See the README's Settings table.

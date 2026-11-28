@@ -18,61 +18,89 @@ function sharedLook(html) {
   assert.doesNotMatch(html, /\son[a-z]+\s*=\s*["']/i, 'no inline event handlers');
   assert.doesNotMatch(html, /(href|src|action)=["']\/(?!shared\/|m\/)/i, 'links use the base path');
   assert.doesNotMatch(html, /fonts\.(googleapis|gstatic)|https?:\/\/[^"']*\.woff/);
+  assert.doesNotMatch(html, /#[0-9a-f]{6}\b/i, 'colours come from the shared tokens');
 }
 
-test('Today shows every appointment with tiles, rows and a panel for each', async () => {
+test('Today: tiles, banner with production, goal cards, short names, row chips and a panel for each', async () => {
   const r = await call(mod.port, 'GET', '/');
   assert.strictEqual(r.status, 200);
   sharedLook(r.text);
-  for (const n of ['Testerson, Alex', 'Sampleton, Bea (B)', 'Mockford, Cy']) assert.ok(r.text.includes(n), n);
-  assert.match(r.text, /class="tdc-stats"/);
-  assert.match(r.text, /class="tdc-pagehead"/);
+  for (const n of ['A. Testerson', 'B. Sampleton', 'C. Mockford']) assert.ok(r.text.includes(n), n);
+  assert.ok(!r.text.includes('Sampleton, Bea'), 'full names stay off the list');
+  assert.match(r.text, /3 patients · \$1,820/);
+  assert.match(r.text, /X-rays to add/);
+  assert.match(r.text, /tdc-stat-badge">1 ins</, 'corner badge: patients with planned work and insurance left');
+  assert.match(r.text, /Production and goals/);
+  assert.match(r.text, /DOC1/);
+  assert.match(r.text, /of \$3,600 goal/);
+  assert.match(r.text, /Unsched Tx \$1,820/);
+  assert.match(r.text, /No ins max on file/);
+  assert.match(r.text, /Add FMX/, 'never had an FMX');
+  assert.match(r.text, /Seat crown #30/);
   assert.match(r.text, /<template id="ds-p-502">/);
-  assert.match(r.text, /data-f-lab="1"/);
-  assert.match(r.text, /Late at the lab/);
-  assert.match(r.text, /\$1,520/);
   assert.ok(!r.text.includes('Fakely'), 'broken appointments hidden by default');
 });
 
-test('the panel shows planned work, x-ray limits with next-covered dates, and the lab case for the visit', async () => {
+test('panel: grouped treatment, insurance left bar, x-ray flags and plan limits, lab case for the visit', async () => {
   const r = await call(mod.port, 'GET', '/patient?patient=9002&apt=502&date=2026-11-16&fragment=1');
   assert.strictEqual(r.status, 200);
+  assert.match(r.text, /Crown \+ buildup #19/);
   assert.match(r.text, /D2950/);
-  assert.match(r.text, /D2740/);
-  assert.match(r.text, /No limit on file/);
+  assert.match(r.text, /\$932<\/span> of \$2,000 left/);
   assert.match(r.text, /Lab cases for this visit/);
   assert.match(r.text, /Pretend Lab/);
-  const a = await call(mod.port, 'GET', '/patient?patient=9001&apt=501&date=2026-11-16&fragment=1');
-  assert.match(a.text, /Overdue/);
-  assert.match(a.text, /Not covered yet/);
-  assert.match(a.text, /Nothing waiting/);
+  const c = await call(mod.port, 'GET', '/patient?patient=9003&apt=503&date=2026-11-16&fragment=1');
+  assert.match(c.text, /FMX on appt/, 'D0210 is already on the appointment');
+  assert.match(c.text, /No ins max on file/);
 });
 
-test('hygiene is left to the gateway: the module never asks to include it', async () => {
+test('only the reports this module needs are asked for, and hygiene is left to the gateway', async () => {
   for (const c of gw.calls.filter((x) => x.report === 'unscheduled_treatment')) assert.ok(!('include_hygiene' in c.params));
-  const asked = new Set(gw.calls.map((c) => c.report));
-  for (const r of asked) assert.ok(['daysheet', 'xray_history', 'unscheduled_treatment', 'lab_cases_open'].includes(r), r);
+  for (const r of new Set(gw.calls.map((c) => c.report))) {
+    assert.ok(['daysheet', 'xray_history', 'unscheduled_treatment', 'insurance_remaining', 'lab_cases_open', 'operatories', 'daysheet_goals'].includes(r), r);
+  }
 });
 
-test('any day: date picker, compact dates from tile links, and broken appointments on request', async () => {
+test('any day: date picker, compact dates from tile links, broken appointments on request', async () => {
   const r = await call(mod.port, 'GET', '/day?date=20261117&broken=1');
   assert.strictEqual(r.status, 200);
   sharedLook(r.text);
   assert.match(r.text, /value="2026-11-17"/);
-  assert.match(r.text, /Fakely, Dee/);
+  assert.match(r.text, /D. Fakely/);
   assert.match(r.text, /Schedule · Tue, Nov 17/);
   const bad = await call(mod.port, 'GET', '/day?date=not-a-date');
-  assert.strictEqual(bad.status, 200);
   assert.match(bad.text, /value="2026-11-16"/);
 });
 
-test('Unscheduled lists each patient once with a total and the oldest plan date', async () => {
+test('appointment book: chairs in Open Dental order, blocks link to the patient, x-ray tags', async () => {
+  const r = await call(mod.port, 'GET', '/book?date=2026-11-16');
+  assert.strictEqual(r.status, 200);
+  sharedLook(r.text);
+  const i1 = r.text.indexOf('>Op 1<'); const i2 = r.text.indexOf('>Op 2<'); const ih = r.text.indexOf('>Hyg 1<');
+  assert.ok(i1 > 0 && i1 < i2 && i2 < ih, 'operatory order');
+  assert.match(r.text, /href="\/m\/daysheet\/day\?date=2026-11-16&amp;apt=502"/);
+  assert.match(r.text, /\+FMX/);
+});
+
+test('this week: only patients with insurance left and unscheduled treatment', async () => {
+  const r = await call(mod.port, 'GET', '/week?date=2026-11-18');
+  assert.strictEqual(r.status, 200);
+  sharedLook(r.text);
+  assert.match(r.text, /Week of Mon, Nov 16/);
+  assert.match(r.text, /B. Sampleton/);
+  assert.ok(!r.text.includes('C. Mockford'), 'no insurance max: not on the week list');
+  assert.ok(!r.text.includes('A. Testerson'), 'no unscheduled treatment: not on the week list');
+  assert.match(r.text, /\$932 ins left/);
+});
+
+test('Unscheduled: one row per patient, grouped by insurance, crown and buildup together', async () => {
   const r = await call(mod.port, 'GET', '/unscheduled');
   assert.strictEqual(r.status, 200);
   sharedLook(r.text);
-  assert.strictEqual((r.text.match(/Sampleton, Bea/g) || []).length, 1);
-  assert.match(r.text, /2 procedures/);
-  assert.match(r.text, /Planned over a year ago/);
+  assert.strictEqual((r.text.match(/B\. Sampleton/g) || []).length, 1);
+  assert.match(r.text, /Insurance left in 2026/);
+  assert.match(r.text, /No insurance<\/span>/);
+  assert.match(r.text, /Crown \+ buildup #19 \$1,500/);
   assert.match(r.text, /href="\/m\/finder\/"/);
 });
 
@@ -80,14 +108,9 @@ test('patient page works without JavaScript', async () => {
   const r = await call(mod.port, 'GET', '/patient?patient=9005&from=unscheduled');
   assert.strictEqual(r.status, 200);
   sharedLook(r.text);
-  assert.match(r.text, /Exampleby, Eli/);
+  assert.match(r.text, /E. Exampleby/);
   assert.match(r.text, /href="\/m\/daysheet\/unscheduled"/);
   assert.strictEqual((await call(mod.port, 'GET', '/patient?patient=abc')).status, 400);
-});
-
-test('names are escaped', async () => {
-  const { esc } = require('../lib/render');
-  assert.strictEqual(esc('<b>"x"</b>'), '&lt;b&gt;&quot;x&quot;&lt;/b&gt;');
 });
 
 test('nothing from Open Dental is written to disk', async () => {

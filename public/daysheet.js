@@ -4,13 +4,14 @@
    patient panel. No data is stored on the device except the Group by choice. */
 (function () {
   'use strict';
-  var base = document.body.getAttribute('data-base') || '';
   var list = document.getElementById('ds-list');
 
   // ---------- List: filter, search, group ----------
   if (list) {
     var rows = Array.prototype.slice.call(list.querySelectorAll('.tdc-row'));
-    var isDay = !!list.querySelector('[data-apt]');
+    var isDay = !!list.querySelector('[data-apt].tdc-row');
+    var isStatic = list.getAttribute('data-static') === '1';
+    var withMoney = list.getAttribute('data-money') === '1';
     var search = document.getElementById('ds-search');
     var prov = document.getElementById('ds-prov');
     var op = document.getElementById('ds-op');
@@ -20,10 +21,24 @@
     var seg = document.getElementById('ds-groupby');
     var tiles = Array.prototype.slice.call(document.querySelectorAll('.tdc-stats .tdc-stat[data-filter]'));
     var filter = 'all';
-    var group = seg ? seg.querySelector('[aria-pressed="true"]').getAttribute('data-group') : 'time';
+    var group = seg ? seg.querySelector('[aria-pressed="true"]').getAttribute('data-group') : 'static';
     var countWord = count ? count.textContent : '';
 
-    var AGE = { year: ['Planned over a year ago', 'alert', 0], half: ['Planned 6 to 12 months ago', 'warn', 1], recent: ['Planned in the last 6 months', 'new', 2], 'new': ['No plan date', 'new', 3] };
+    // Server-rendered headings: remember their label, colour and order, and which rows they held.
+    var heads = {};
+    var order = 0;
+    var current = null;
+    Array.prototype.slice.call(list.children).forEach(function (el) {
+      if (el.classList.contains('tdc-gh')) {
+        current = el.getAttribute('data-gk');
+        heads[current] = { name: el.querySelector('span').textContent, status: el.getAttribute('data-status'), sort: order++ };
+      } else if (el.classList.contains('tdc-row')) {
+        el.setAttribute('data-gk0', current || '');
+      }
+    });
+
+    var AGE = { year: ['Planned over a year ago', 'alert', 0], half: ['Planned 6 to 12 months ago', 'warn', 1], recent: ['Planned in the last 6 months', 'new', 2], none: ['No plan date', 'new', 3] };
+    var INS_ORDER = { left: 0, nomax: 1, used: 2, noins: 3 };
     var TIME = { Morning: 0, Afternoon: 1, Evening: 2 };
     function amountBand(t) {
       t = Number(t);
@@ -34,17 +49,19 @@
       return ['Under $500', 4];
     }
     function keyOf(r) {
+      if (group === 'static') { var k = r.getAttribute('data-gk0'); var h = heads[k] || { name: '', sort: 0 }; return [h.name, h.sort, h.status]; }
       if (group === 'time') { var t = r.getAttribute('data-time'); return [t, TIME[t] || 0, null]; }
-      if (group === 'prov') { var p = r.getAttribute('data-prov') || 'No provider'; return [p, p, null]; }
+      if (group === 'prov') { var p = r.getAttribute('data-hyg') || r.getAttribute('data-prov') || 'No provider'; return [p, p, null]; }
       if (group === 'op') { var o = r.getAttribute('data-op') || 'No chair'; return [o, o, null]; }
       if (group === 'amount') { var a = amountBand(r.getAttribute('data-total')); return [a[0], a[1], null]; }
-      var g = AGE[r.getAttribute('data-age')] || AGE['new'];
+      if (group === 'ins') { var i = r.getAttribute('data-ins'); var hi = heads['ins:' + i] || { name: i, status: null }; return [hi.name, INS_ORDER[i] || 0, hi.status]; }
+      var g = AGE[r.getAttribute('data-age')] || AGE.none;
       return [g[0], g[2], g[1]];
     }
     function matches(r) {
       if (filter !== 'all') {
         if (isDay && r.getAttribute('data-f-' + filter) !== '1') return false;
-        if (!isDay && r.getAttribute('data-age') !== filter) return false;
+        if (!isDay && r.getAttribute('data-ins') !== filter) return false;
       }
       var q = search ? search.value.trim().toLowerCase() : '';
       if (q && q.split(/\s+/).some(function (w) { return (r.getAttribute('data-search') || '').indexOf(w) < 0; })) return false;
@@ -56,35 +73,32 @@
     function money(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
     function render() {
       var shown = rows.filter(matches);
-      var groups = {}; var order = [];
+      var groups = {}; var list2 = [];
       shown.forEach(function (r) {
         var k = keyOf(r);
-        if (!groups[k[0]]) { groups[k[0]] = { name: k[0], sort: k[1], status: k[2], rows: [] }; order.push(groups[k[0]]); }
+        if (!groups[k[0]]) { groups[k[0]] = { name: k[0], sort: k[1], status: k[2], rows: [] }; list2.push(groups[k[0]]); }
         groups[k[0]].rows.push(r);
       });
-      order.sort(function (a, b) { return a.sort < b.sort ? -1 : a.sort > b.sort ? 1 : 0; });
+      list2.sort(function (a, b) { return a.sort < b.sort ? -1 : a.sort > b.sort ? 1 : 0; });
       while (list.firstChild) list.removeChild(list.firstChild);
-      order.forEach(function (g) {
+      list2.forEach(function (g) {
         var h = document.createElement('h3');
         h.className = 'tdc-gh';
         h.setAttribute('data-gk', group + ':' + g.name);
         if (g.status) h.setAttribute('data-status', g.status);
         var n = document.createElement('span'); n.textContent = g.name; h.appendChild(n);
         var c = document.createElement('span'); c.className = 'tdc-gcount'; c.textContent = String(g.rows.length); h.appendChild(c);
-        if (!isDay) {
+        if (withMoney || isStatic) {
           var tot = document.createElement('span'); tot.className = 'tdc-mono'; tot.style.marginLeft = 'auto'; tot.style.textTransform = 'none';
-          tot.textContent = money(g.rows.reduce(function (s, r) { return s + Number(r.getAttribute('data-total')); }, 0));
+          tot.textContent = money(g.rows.reduce(function (s, r) { return s + Number(r.getAttribute('data-total') || 0); }, 0));
           h.appendChild(tot);
         }
         list.appendChild(h);
         g.rows.forEach(function (r) { list.appendChild(r); });
       });
       list.hidden = !shown.length;
-      if (empty) empty.hidden = !!shown.length;
-      if (count) {
-        if (shown.length === rows.length) count.textContent = countWord;
-        else count.textContent = shown.length + ' of ' + rows.length + ' shown';
-      }
+      if (empty) empty.hidden = !!shown.length || !rows.length;
+      if (count) count.textContent = shown.length === rows.length ? countWord : shown.length + ' of ' + rows.length + ' shown';
     }
     tiles.forEach(function (t) {
       t.addEventListener('click', function () {
@@ -120,7 +134,7 @@
     render();
   }
 
-  // ---------- Day picker: go as soon as a date is chosen ----------
+  // ---------- Day picker and the broken-appointments switch ----------
   var dp = document.getElementById('ds-daypick');
   if (dp) dp.querySelector('input[type=date]').addEventListener('change', function () { if (this.value) dp.submit(); });
   var br = document.getElementById('ds-broken');
@@ -153,10 +167,10 @@
     show(tpl.innerHTML);
     return true;
   }
-  function openPatient(patNum, from) {
-    opener = from || null;
+  function openFetched(link) {
+    opener = link;
     show('<p class="tdc-muted">Loading…</p>');
-    fetch(base + '/patient?patient=' + encodeURIComponent(patNum) + '&fragment=1', { credentials: 'same-origin', headers: { Accept: 'text/html' } })
+    fetch(link.href + (link.href.indexOf('?') < 0 ? '?' : '&') + 'fragment=1', { credentials: 'same-origin', headers: { Accept: 'text/html' } })
       .then(function (r) {
         if (r.status === 401) { location.reload(); throw new Error('logged out'); }
         if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -168,19 +182,19 @@
   document.addEventListener('click', function (e) {
     var row = e.target.closest && e.target.closest('#ds-list .tdc-row');
     if (!row) return;
-    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return; // let people open the full page in a new tab
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return; // open the full page in a new tab instead
     var link = row.querySelector('[data-panel],[data-fetch]');
     if (!link) return;
     e.preventDefault();
     if (link.hasAttribute('data-panel')) { if (!openApt(link.getAttribute('data-panel'), link)) location.href = link.href; }
-    else openPatient(link.getAttribute('data-fetch'), link);
+    else openFetched(link);
   });
   scrim.addEventListener('click', function (e) {
     if (e.target === scrim || (e.target.closest && e.target.closest('[data-close]'))) close();
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !scrim.hidden) close(); });
 
-  // A tile link like /?apt=5372 opens that patient straight away.
+  // A tile or appointment-book link like ?apt=5372 opens that patient straight away.
   var m = location.search.match(/[?&]apt=(\d+)/);
   if (m) openApt(m[1], null);
 })();

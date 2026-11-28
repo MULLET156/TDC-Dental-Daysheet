@@ -49,9 +49,9 @@ test('tiles are JSON, at most 8 items, module-relative links, no HTML or dates t
 
 test('today tile counts patients and flags the lab case that is not back', async () => {
   const t = (await call(mod.port, 'GET', '/tiles/today')).json;
-  assert.strictEqual(t.value, '3 patients');
+  assert.strictEqual(t.value, '3 patients · $1,820');
   assert.strictEqual(t.status, 'alert');
-  assert.ok(t.items.some((i) => /Sampleton, B\. .*lab not back/.test(i.text)));
+  assert.ok(t.items.some((i) => /B\. Sampleton .*lab not back/.test(i.text)));
 });
 
 test('lab-due tile lists cases not back before their seat date, not the ones already back', async () => {
